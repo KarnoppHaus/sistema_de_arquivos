@@ -56,6 +56,7 @@ try:
         operations = {'mv':cf.mv, # Funções que serão reconhecidas pelo token
                     'ln':cf.ln,  
                     'clear':cf.clear,
+                    'exit':cf.exit,
                     'touch':af.touch, 
                     'rm':af.rm, 
                     'echo':af.echo, 
@@ -84,6 +85,8 @@ try:
                 op(f, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *tokens[1:])
             except KeyError:
                 print("Erro. Comando não existente!")
+            except (WrongParameters, CantMoveParent, FileAlreadyExists) as e:
+                print(e)
 
 except FileNotFoundError:
     exit(f'Erro. Crie o disco primeiramente com "disk_manipulate.py"')

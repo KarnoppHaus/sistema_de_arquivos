@@ -7,7 +7,7 @@ class Directory:
     def mkdir(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
         if len(args) != 1: raise WrongParameters
         dir = args[0].split('/')
-        if dir[-1] in ['.', '..', '']: raise NotAcceptableDirName
+        if dir[-1] in ['.', '..', '']: raise NotAcceptableDirName(f"A pasta não pode se chamar {dir[-1]}")
         cwd = self.control.change_dir(file, cwd[0], dir[0:-1], inodes_array)
         self.control.create_folder(file, dir[-1], inodes_array, inodes_bitmap, cwd, blocks_bitmap)
         #self.control.add_in_folder(file, folder, inodes_array, cwd, blocks_bitmap)

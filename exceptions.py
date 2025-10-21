@@ -1,29 +1,69 @@
 class FullBitmap(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'FullBitmap: {self.message}'
 
 class FolderDontExist(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'FolderDontExist: {self.message}'
 
 class NotFolderINode(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'NotFolderINode: {self.message}'
 
 class FileAlreadyExists(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'FileAlreadyExists: {self.message}'
 
 class WrongInodeIndex(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'WrongInodeIndex: {self.message}'
 
 class WrongParameters(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'WrongParameters: {self.message}'
 
 class NotAcceptableDirName(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'NotAcceptableDirName: {self.message}'
 
 class NotAcceptableFileName(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'NotAcceptableFileName: {self.message}'
 
 class CantRemove(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'CantRemove: {self.message}'
 
 class CantMoveParent(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'CantMoveParent: {self.message}'

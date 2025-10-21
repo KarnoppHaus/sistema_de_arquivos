@@ -7,7 +7,7 @@ class Archives():
         self.control = control
 
     def touch(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
-        if len(args) != 1: raise WrongParameters
+        if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use touch [arquivo]')
         dir = args[0].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
         cwd = self.control.change_dir(file, cwd[0], dir[0:-1], inodes_array)
@@ -15,7 +15,7 @@ class Archives():
         #self.control.add_in_folder(file, file_inode, inodes_array, cwd, blocks_bitmap)
 
     def rm(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
-        if len(args) != 1: raise WrongParameters
+        if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use rm [arquivo]')
         dir = args[0].split('/')
         if dir[-1] in ['.', '..']: raise CantRemove
         cwd = self.control.change_dir(file, cwd[0], dir[0:-1], inodes_array)
@@ -31,7 +31,7 @@ class Archives():
             self.control.rewrite(file, cwd, inodes_array, folder_dict, blocks_bitmap)
 
     def echo(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
-        if len(args) != 3: raise WrongParameters
+        if len(args) != 3: raise WrongParameters('Você deve passar três parâmetros para esta função! Use echo ["mensagem"] [>, >>] [arquivo]')
         dir = args[2].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
         cwd = self.control.change_dir(file, cwd[0], dir[0:-1], inodes_array)
@@ -44,12 +44,13 @@ class Archives():
                     self.control.create_file(file, dir[-1], inodes_array, inodes_bitmap, cwd, blocks_bitmap, args[0])
             case '>>':
                 if dir[-1] in folder_dict:
-                    self.control.rewrite(file, self.control.read_inode(inodes_array, folder_dict[dir[-1]]), inodes_array, self.control.read_blocks(file, self.control.read_inode(inodes_array, folder_dict[dir[-1]]), inodes_array)  + '\n' + args[0], blocks_bitmap)
+                    file_content = self.control.read_blocks(file, self.control.read_inode(inodes_array, folder_dict[dir[-1]]), inodes_array)
+                    self.control.rewrite(file, self.control.read_inode(inodes_array, folder_dict[dir[-1]]), inodes_array, (file_content  + '\n' + args[0]) if file_content else args[0], blocks_bitmap)
                 else:
                     self.control.create_file(file, dir[-1], inodes_array, inodes_bitmap, cwd, blocks_bitmap, args[0])
 
     def cat(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
-        if len(args) != 1: raise WrongParameters
+        if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use cat [arquivo]')
         dir = args[0].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
         cwd = self.control.change_dir(file, cwd[0], dir[0:-1], inodes_array)
@@ -62,7 +63,7 @@ class Archives():
 
     def cp(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
         # <-::- Manipular Arquivo 1 -::->
-        if len(args) != 2: raise WrongParameters
+        if len(args) != 2: raise WrongParameters('Você deve passar dois parâmetros para esta função! Use cp [origem] [destino]')
         dir1, dir2 = args
         dir1 = dir1.split('/')
         if dir1[-1] in ['.', '..', '']: raise NotAcceptableFileName
