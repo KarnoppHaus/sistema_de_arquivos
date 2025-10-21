@@ -1,9 +1,3 @@
-import math
-import pickle
-import codecs
-
-from variables import *
-from inode import IndexNode
 from exceptions import *
 
 # <-::- FUNÇÕES DE ARQUIVOS -::->
