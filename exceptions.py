@@ -19,5 +19,11 @@ class WrongParameters(Exception):
 class NotAcceptableDirName(Exception):
     pass
 
+class NotAcceptableFileName(Exception):
+    pass
+
 class CantRemove(Exception):
+    pass
+
+class CantMoveParent(Exception):
     pass

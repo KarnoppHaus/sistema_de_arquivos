@@ -3,11 +3,22 @@ import shlex # Lib usada para tokenizar entrada e reconhecer operações
 from bitarray import bitarray # Lib usada para salvar os maps de blocos e inodes
 import pickle
 import numpy as np
+import os
 
 # Files
 from functions import archives, directory, common # Arquivos contendo funções
 from variables import *
+from control import *
 
+def absolute_path(f, inode, inodes_array):
+    path = []
+    while inode.index != 0:
+        path.append(inode.name)
+        inode = ctrl.change_dir(f, inode, ['..'], inodes_array)
+    path.reverse()
+    if len(path) == 0: return '/'
+    return '/' + '/'.join(path)
+    
 
 def read_bitmap(file, pos, n):
     file.seek(pos)
@@ -35,13 +46,16 @@ try:
         f.seek(0)
         sb = pickle.load(f)
 
+        ctrl = Control(sb)
+
         # <-::- Criar operações para leitura -::->
-        df = directory.Directory(sb)
-        af = archives.Archives(sb)
-        cf = common.Common(sb)
+        df = directory.Directory(ctrl)
+        af = archives.Archives(ctrl)
+        cf = common.Common(ctrl)
 
         operations = {'mv':cf.mv, # Funções que serão reconhecidas pelo token
                     'ln':cf.ln,  
+                    'clear':cf.clear,
                     'touch':af.touch, 
                     'rm':af.rm, 
                     'echo':af.echo, 
@@ -59,17 +73,17 @@ try:
         blocks_bitmap = read_bitmap(f, sb['blocks_bitmap_start'] * sb['block_size'], (sb['inodes_bitmap_start'] - sb['blocks_bitmap_start']) * sb['block_size'])
         inodes_bitmap = read_bitmap(f, sb['inodes_bitmap_start'] * sb['block_size'], (sb['data_blocks_start'] - sb['inodes_bitmap_start']) * sb['block_size'])
 
+        os.system('clear') # Limpar terminal
+
         while True: # Loop para entradas>
-            entry = input(f"{cwd[0].name} -> ") # Entrada do terminal
+            entry = input(f"{absolute_path(f, cwd[0], inodes_array)}$ ") # Entrada do terminal
             tokens = shlex.split(entry) # Tokeniza entrada
 
-            #try:
-            op = operations[tokens[0]] # Primeiro token sempre será a operação a ser realizada
-            op(f, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *tokens[1:])
-            #except KeyError:
-            #    print("Erro. Comando não existente!")
-            print(blocks_bitmap[0:16])
-            print(inodes_bitmap[0:16])
+            try:
+                op = operations[tokens[0]] # Primeiro token sempre será a operação a ser realizada
+                op(f, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *tokens[1:])
+            except KeyError:
+                print("Erro. Comando não existente!")
 
 except FileNotFoundError:
     exit(f'Erro. Crie o disco primeiramente com "disk_manipulate.py"')

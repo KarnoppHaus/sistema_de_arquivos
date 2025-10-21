@@ -29,8 +29,10 @@ class Control:
         inodes_array[inode.index] = inode
         np.save('inodes.npy', inodes_array)
 
-    def read_blocks(self, f, inode):
+    def read_blocks(self, f, inode, inodes_array):
         s = b''
+        if inode.inode_pointer:
+            inode = self.read_inode(inodes_array, inode.inode_pointer)
         for block in inode.block_pointers:
             f.seek((self.sb['data_blocks_start'] + block) * self.sb['block_size'])
             s += f.read(self.sb['block_size'])
@@ -81,7 +83,7 @@ class Control:
         raise FullBitmap('O bitmap está cheio!')
 
     def add_in_folder(self, f, inode, inodes_array, folder, blocks_bitmap):
-        folder_dict = self.read_blocks(f, folder)
+        folder_dict = self.read_blocks(f, folder, inodes_array)
         folder_dict[inode.name] = inode.index
 
         self.rewrite(f, folder, inodes_array, folder_dict, blocks_bitmap)
@@ -92,7 +94,7 @@ class Control:
             cwd = inodes_array[0]
             dirs.pop(0)
         for dir in dirs:
-            cwd = self.read_inode(inodes_array, self.read_blocks(f, cwd)[dir])
+            cwd = self.read_inode(inodes_array, self.read_blocks(f, cwd, inodes_array)[dir])
             if cwd.permissions[0] != 'd':
                 raise NotFolderINode
         return cwd
@@ -100,8 +102,26 @@ class Control:
     def create_folder(self, f, name, inodes_array, inodes_bitmap, folder, blocks_bitmap):
         inode_index = (self.find_empty_place(inodes_bitmap, self.sb['inodes'], 1))[0]
         inode = IndexNode(name, inode_index, 'Theo', 'Theo', 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), 'drwxr-xr-x')
-        print(inode)
         folder_content = {'.':inode_index, '..':folder.index}
+        self.add_in_folder(f, inode, inodes_array, folder, blocks_bitmap)
         self.rewrite(f, inode, inodes_array, folder_content, blocks_bitmap)
         self.save_bitmap(f, inodes_bitmap=inodes_bitmap)
+        return inode
+
+    def create_file(self, f, name, inodes_array, inodes_bitmap, folder, blocks_bitmap, content=''):
+        inode_index = (self.find_empty_place(inodes_bitmap, self.sb['inodes'], 1))[0]
+        inode = IndexNode(name, inode_index, 'Theo', 'Theo', 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), '-rwxr-xr-x')
+        file_content = content
+        self.add_in_folder(f, inode, inodes_array, folder, blocks_bitmap)
+        self.rewrite(f, inode, inodes_array, file_content, blocks_bitmap)
+        self.save_bitmap(f, inodes_bitmap=inodes_bitmap)
+        return inode
+    
+    def create_link_inode(self, name, org_inode, inodes_bitmap):
+        inode_index = (self.find_empty_place(inodes_bitmap, self.sb['inodes'], 1))[0]
+        inode = copy.deepcopy(org_inode)
+        inode.name = name
+        inode.index = inode_index
+        inode.block_pointers = []
+        inode.inode_pointer = org_inode.index
         return inode

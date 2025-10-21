@@ -1,5 +1,3 @@
-a = {'slave':3, 'opa':5}
+a = {'a':35, 'c':3, 'b':12, 'be':5}
 
-del a['slave']
-
-print(a)
+print(sorted(a))
