@@ -4,9 +4,11 @@ from exceptions import *
 
 class Archives():
     def __init__(self, control):
+        #o construtor recebe a instância de Control, que é o motor de I/O de baixo nível
         self.control = control
 
     def touch(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #cria arquivo vazio 
         if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use touch [arquivo]')
         dir = args[0].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
@@ -15,6 +17,7 @@ class Archives():
         #self.control.add_in_folder(file, file_inode, inodes_array, cwd, blocks_bitmap)
 
     def rm(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #remove um arquivo
         if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use rm [arquivo]')
         dir = args[0].split('/')
         if dir[-1] in ['.', '..']: raise CantRemove
@@ -31,6 +34,7 @@ class Archives():
             self.control.rewrite(file, cwd, inodes_array, folder_dict, blocks_bitmap)
 
     def echo(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #comando: echo ["mensagem"] [>, >>] [arquivo] - Escreve conteúdo em um arquivo
         if len(args) != 3: raise WrongParameters('Você deve passar três parâmetros para esta função! Use echo ["mensagem"] [>, >>] [arquivo]')
         dir = args[2].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
@@ -50,6 +54,7 @@ class Archives():
                     self.control.create_file(file, dir[-1], inodes_array, inodes_bitmap, cwd, blocks_bitmap, args[0])
 
     def cat(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #exibe conteudo de um arquivo 
         if len(args) != 1: raise WrongParameters('Você deve passar um parâmetro para esta função! Use cat [arquivo]')
         dir = args[0].split('/') # dir[-1] --> Filename
         if dir[-1] in ['.', '..', '']: raise NotAcceptableFileName
@@ -62,6 +67,7 @@ class Archives():
         print('<-::- END OF FILE -::->')
 
     def cp(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #cp [origem] [destino] - Copia um arquivo
         # <-::- Manipular Arquivo 1 -::->
         if len(args) != 2: raise WrongParameters('Você deve passar dois parâmetros para esta função! Use cp [origem] [destino]')
         dir1, dir2 = args

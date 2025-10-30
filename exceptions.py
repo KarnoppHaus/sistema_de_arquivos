@@ -1,3 +1,5 @@
+#todos os exceptions usados ao longo do sistema
+
 class FullBitmap(Exception):
     def __init__(self, message):
         self.message = message

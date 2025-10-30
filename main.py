@@ -6,25 +6,28 @@ import numpy as np
 import os
 
 # Files
-from functions import archives, directory, common # Arquivos contendo funções
-from variables import *
-from control import *
+from functions import archives, directory, common # Arquivos contendo funções (comandos)
+from variables import * #constantes
+from control import * #classe controle
 
 def absolute_path(f, inode, inodes_array):
-    path = []
-    while inode.index != 0:
-        path.append(inode.name)
-        inode = ctrl.change_dir(f, inode, ['..'], inodes_array)
-    path.reverse()
-    if len(path) == 0: return '/'
-    return '/' + '/'.join(path)
+    #function para calcular o caminho absoluto a partir do i-node atual
+    path = [] #lista com os diretorios
+    while inode.index != 0: #sobe na hierarquia ate achar o inode raiz (index==0)
+        path.append(inode.name) #add o nome do dir atual na lista
+        inode = ctrl.change_dir(f, inode, ['..'], inodes_array) #troca de diretorio
+    path.reverse() #inverte para ter a lista do topo para baixo
+
+    if len(path) == 0: return '/' #se lista vazia == raiz
+    return '/' + '/'.join(path) #concatena os nomes com '/' 
     
 
-def read_bitmap(file, pos, n):
-    file.seek(pos)
-    bitmap = bitarray()
-    bitmap.frombytes(f.read(n))
-    return list(bitmap)
+def read_bitmap(file, pos, n): 
+    #Func para ler uma secao de bitmap, blocks ou inodes, do arquivo de disco
+    file.seek(pos) #move o ponteiro do arquivo 'f' para a posicao inicial do Bitmap no disco
+    bitmap = bitarray() 
+    bitmap.frombytes(f.read(n)) #lê 'n' bytes (o tamanho total do Bitmap) e converte para uma sequência de bits.
+    return list(bitmap) #retorna como uma lista normal
 
 # Arquitetura Atual
 # Bloco 0 --> Super bloco
@@ -35,24 +38,28 @@ def read_bitmap(file, pos, n):
 
 # <-::- Ler Array de INodes -::->
 try:
+    #tenta carregar o array de inodes do disco
     inodes_array = np.load('inodes.npy', allow_pickle=True)
 except ModuleNotFoundError:
+    #se nao for encontrado == formatar disco (disk_manipulate.py)
     exit(f'Erro. Crie o disco primeiramente com "disk_manipulate.py"')
 
-
+#bloco principal
 try:
+    #abre o arquivo de disco em modo de leitura e escrita 
     with open('disk.img', 'r+b') as f:
         # <-::- Ler Superbloco -::->
-        f.seek(0)
-        sb = pickle.load(f)
+        f.seek(0) #ponteiro para o inicio do disco (superblock)
+        sb = pickle.load(f) #carrega o superblock (dict)
 
-        ctrl = Control(sb)
+        ctrl = Control(sb) #instancia o control passando o superblock carregado
 
         # <-::- Criar operações para leitura -::->
-        df = directory.Directory(ctrl)
-        af = archives.Archives(ctrl)
-        cf = common.Common(ctrl)
+        df = directory.Directory(ctrl) #funcoes de diretorios
+        af = archives.Archives(ctrl) #funcoes de arquivos
+        cf = common.Common(ctrl) #funcoes comuns para dir e archives
 
+        #Dicionário de mapeamento: Comandos do usuário -> Métodos correspondentes
         operations = {'mv':cf.mv, # Funções que serão reconhecidas pelo token
                     'ln':cf.ln,  
                     'clear':cf.clear,
@@ -69,20 +76,27 @@ try:
                     }
         
         # <-::- Carregar CWD e Bitmaps -::->
-        cwd = [inodes_array[0]]
+        cwd = [inodes_array[0]] #inicializa com o inode raiz
 
+        #lê o Bitmap de blocos (do início do bitmap de blocos até o início do bitmap de i-nodes)
         blocks_bitmap = read_bitmap(f, sb['blocks_bitmap_start'] * sb['block_size'], (sb['inodes_bitmap_start'] - sb['blocks_bitmap_start']) * sb['block_size'])
+        #lê o Bitmap de i-nodes (do início do bitmap de i-nodes até o início dos blocos de dados)
         inodes_bitmap = read_bitmap(f, sb['inodes_bitmap_start'] * sb['block_size'], (sb['data_blocks_start'] - sb['inodes_bitmap_start']) * sb['block_size'])
 
         os.system('clear') # Limpar terminal
 
         while True: # Loop para entradas>
+            #pede a entrada do user mostrando o caminho absoluto
             entry = input(f"{absolute_path(f, cwd[0], inodes_array)}$ ") # Entrada do terminal
-            tokens = shlex.split(entry) # Tokeniza entrada
+            tokens = shlex.split(entry) # Tokeniza entrada (comandos / argumentos)
 
             try:
                 op = operations[tokens[0]] # Primeiro token sempre será a operação a ser realizada
+
                 op(f, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *tokens[1:])
+                # Chama a função de comando, passando o manipulador de arquivo 'f', o CWD, os arrays de estado,
+                # e desempacotando o restante dos tokens como argumentos (*tokens[1:])
+                
             except KeyError:
                 print("Erro. Comando não existente!")
             except (WrongParameters, CantMoveParent, FileAlreadyExists) as e:

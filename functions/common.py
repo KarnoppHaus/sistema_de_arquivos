@@ -3,10 +3,12 @@ import os
 from exceptions import *
 
 class Common:
+    #classe para comandos comuns aos archives e aos dir
     def __init__(self, control):
         self.control = control
 
     def mv(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #comando: mv [origem] [destino] - Move um arquivo/diretório
         # <-::- Manipular Arquivo 1 -::->
         if len(args) != 2: raise WrongParameters('Você deve passar dois parâmetros para esta função! Use mv [arquivo1] [arquivo2]')
         dir1, dir2 = args
@@ -33,6 +35,7 @@ class Common:
         self.control.rewrite(file, t2_cwd, inodes_array, folder_dict2, blocks_bitmap)       
         
     def ln(self, file, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *args):
+        #comando: ln [origem] [nome_do_link] - Cria um link (simbólico, baseado no inode_pointer)
         # <-::- Manipular Arquivo 1 -::->
         if len(args) != 2: raise WrongParameters('Você deve passar dois parâmetros para esta função! Use "ln [arquivo1] [arquivo2]"')
         dir1, dir2 = args
