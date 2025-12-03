@@ -12,6 +12,8 @@ from exceptions import *
 class Control:
     def __init__(self, superblock):
         self.sb = superblock
+        self.user = None
+        self.user_group = None
 
     def save_bitmap(self, f, blocks_bitmap=None, inodes_bitmap=None):
         """Salvar Bitmaps dentro do disco"""
@@ -51,11 +53,13 @@ class Control:
         return (serialized_content_size, total_blocks, contents)
 
     def rewrite(self, f, inode, inodes_array, new_content, blocks_bitmap):
+        if not self.__verify_perm(inode, 'w'): raise NoPermissionTo(f'Voce nao tem permissao para escrever neste {'arquivo' if inode.permissions[0] == '-' else 'diretorio'}!')
         size, blocks, serialized_contents = self.divide_in_blocks(new_content)
         for block in inode.block_pointers:
             blocks_bitmap[block] = 0
         blocks = self.find_empty_place(blocks_bitmap, self.sb['usable_blocks'], blocks)
         inode.block_pointers = blocks
+        inode.modification_data = time.strftime("%d-%m-%Y %H:%M:%S", time.localtime())
         for block, content in zip(blocks, serialized_contents):
             blocks_bitmap[block] = 1
             # <-::- Gravar blocos -::->
@@ -94,14 +98,16 @@ class Control:
             cwd = inodes_array[0]
             dirs.pop(0)
         for dir in dirs:
+            if not self.__verify_perm(cwd, 'x'): raise NoPermissionTo('Voce nao tem permissao para entrar nesta pasta!')
             cwd = self.read_inode(inodes_array, self.read_blocks(f, cwd, inodes_array)[dir])
             if cwd.permissions[0] != 'd':
                 raise NotFolderINode
+        if not self.__verify_perm(cwd, 'x'): raise NoPermissionTo('Voce nao tem permissao para entrar nesta pasta!')
         return cwd
     
     def create_folder(self, f, name, inodes_array, inodes_bitmap, folder, blocks_bitmap):
         inode_index = (self.find_empty_place(inodes_bitmap, self.sb['inodes'], 1))[0]
-        inode = IndexNode(name, inode_index, 'Theo', 'Theo', 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), 'drwxr-xr-x')
+        inode = IndexNode(name, inode_index, self.user, self.user, self.user_group, 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), 'drwxrwxr-x')
         folder_content = {'.':inode_index, '..':folder.index}
         self.add_in_folder(f, inode, inodes_array, folder, blocks_bitmap)
         self.rewrite(f, inode, inodes_array, folder_content, blocks_bitmap)
@@ -110,7 +116,7 @@ class Control:
 
     def create_file(self, f, name, inodes_array, inodes_bitmap, folder, blocks_bitmap, content=''):
         inode_index = (self.find_empty_place(inodes_bitmap, self.sb['inodes'], 1))[0]
-        inode = IndexNode(name, inode_index, 'Theo', 'Theo', 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), '-rwxr-xr-x')
+        inode = IndexNode(name, inode_index, self.user, self.user, self.user_group, 0, time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), time.strftime("%d-%m-%Y %H:%M:%S", time.localtime()), '-rw-rw-r--')
         file_content = content
         self.add_in_folder(f, inode, inodes_array, folder, blocks_bitmap)
         self.rewrite(f, inode, inodes_array, file_content, blocks_bitmap)
@@ -125,3 +131,14 @@ class Control:
         inode.block_pointers = []
         inode.inode_pointer = org_inode.index
         return inode
+
+    def __verify_perm(self, archive, perm) -> bool:
+        if self.user == 'root': return True
+        v = {'r':0, 'w':1, 'x':2}
+        comp1 = [archive.owner, archive.group, None]
+        comp2 = [self.user, self.user_group, None]
+        for i, (c1, c2) in enumerate(zip(comp1, comp2)):
+            if c1 == c2:
+                if archive.permissions[(i * 3) + v[perm] + 1] != '-':
+                    return True
+                return False

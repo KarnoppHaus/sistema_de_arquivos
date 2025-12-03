@@ -10,8 +10,7 @@ HDD_CAPACITY =  64 * MB
 BLOCK_SIZE = 512 * B
 INODES = 1024
 
-CREATOR = 'Theo'
-OWNER = 'Theo'
+ROOT_PASSWD = '1234'
 
 BLOCKS_BITMAP_START = 1
 INODES_BITMAP_START = BLOCKS_BITMAP_START + math.ceil(round(((HDD_CAPACITY / BLOCK_SIZE) / 8) / BLOCK_SIZE, 2)) # Quantidade de blocos para representar estado dos inodes + (1 -> inicio do bitmap dos blocos)

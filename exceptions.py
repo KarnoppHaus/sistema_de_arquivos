@@ -67,3 +67,19 @@ class CantMoveParent(Exception):
 
     def __repr__(self):
         return f'CantMoveParent: {self.message}'
+
+class CantChangePermissions(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'CantChangePermissions: {self.message}'
+    
+class NoPermissionTo(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return f'NoPermissionTo{self.message}'
+    
+    

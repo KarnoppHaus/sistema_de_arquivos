@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 # Files
-from functions import archives, directory, common # Arquivos contendo funções
+from functions import archives, directory, common, login # Arquivos contendo funções
 from variables import *
 from control import *
 
@@ -17,6 +17,13 @@ def absolute_path(f, inode, inodes_array):
         inode = ctrl.change_dir(f, inode, ['..'], inodes_array)
     path.reverse()
     if len(path) == 0: return '/'
+    try:
+        if path[0] == 'home' and path[1] == ctrl.user:
+            path.pop(0)
+            path.pop(0)
+            return '~/' + '/'.join(path)
+    except IndexError:
+        pass
     return '/' + '/'.join(path)
     
 
@@ -52,9 +59,12 @@ try:
         df = directory.Directory(ctrl)
         af = archives.Archives(ctrl)
         cf = common.Common(ctrl)
+        login = login.Login(ctrl)
 
         operations = {'mv':cf.mv, # Funções que serão reconhecidas pelo token
                     'ln':cf.ln,  
+                    'chown':cf.chown,
+                    'chmod':cf.chmod,
                     'clear':cf.clear,
                     'exit':cf.exit,
                     'touch':af.touch, 
@@ -69,15 +79,58 @@ try:
                     }
         
         # <-::- Carregar CWD e Bitmaps -::->
-        cwd = [inodes_array[0]]
 
         blocks_bitmap = read_bitmap(f, sb['blocks_bitmap_start'] * sb['block_size'], (sb['inodes_bitmap_start'] - sb['blocks_bitmap_start']) * sb['block_size'])
         inodes_bitmap = read_bitmap(f, sb['inodes_bitmap_start'] * sb['block_size'], (sb['data_blocks_start'] - sb['inodes_bitmap_start']) * sb['block_size'])
 
         os.system('clear') # Limpar terminal
 
+        # <-::- Login -::->
+        while True:
+            opt = input(f'1. Login\n2. Criar usuario\n3. Listar usuarios\n')
+            match opt:
+                case '1':
+                    user = input(f'Insira o usuário de Login: ')
+                    passwd = input(f'Insira a senha: ')
+                    cwd = login.login(f, inodes_array, user, passwd)
+                    match cwd:
+                        case 'err_usr':
+                            print(f'O usuario inserido esta incorreto!')
+        
+                        case 'err_passwd':
+                            print(f'A senha inserida esta incorreta!')
+                        
+                        case _:
+                            break         
+                
+                case '2':
+                    user = input(f'Insira o usuário de Login: ')
+                    passwd = input(f'Insira a senha: ')
+                    group = input(f'Insira o grupo do usuario: ')
+                    cwd = login.create(f, inodes_array, blocks_bitmap, inodes_bitmap, user, passwd, group)
+                    match cwd:
+                        case 'err_existent_usr':
+                            print(f'O usuario inserido ja existe!')
+        
+                        case 'err_invalid_usr':
+                            print(f'O nome de usuario nao e aceito!')
+                        
+                        case 'err_invalid_grp':
+                            print(f'O nome de grupo nao e aceito!')
+                        
+                        case _:
+                            break
+                
+                case '3':
+                    print(', '.join(login.list_users(f, inodes_array)))
+                
+                case _:
+                    print(f'Erro. Insira uma opcao valida!')
+                
+        del login
+
         while True: # Loop para entradas>
-            entry = input(f"{absolute_path(f, cwd[0], inodes_array)}$ ") # Entrada do terminal
+            entry = input(f"{ctrl.user}:{absolute_path(f, cwd[0], inodes_array)}$ ") # Entrada do terminal
             tokens = shlex.split(entry) # Tokeniza entrada
 
             try:
@@ -85,7 +138,7 @@ try:
                 op(f, cwd, inodes_array, blocks_bitmap, inodes_bitmap, *tokens[1:])
             except KeyError:
                 print("Erro. Comando não existente!")
-            except (WrongParameters, CantMoveParent, FileAlreadyExists) as e:
+            except Exception as e:
                 print(e)
 
 except FileNotFoundError:
