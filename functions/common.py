@@ -84,14 +84,19 @@ class Common:
         _, dir = args
         _ = _.split(':')
         dir = dir.split('/')
-        new_owner, new_group = _[0] if len(_) == 2 else (_[0], None)
+        new_owner, new_group = _ if len(_) == 2 else (_[0], None)
         cwd = self.control.change_dir(file, cwd[0], dir[:-1], inodes_array)
         archive = self.control.read_inode(inodes_array, self.control.read_blocks(file, cwd, inodes_array)[dir[-1]])
 
         if self.control.user != archive.owner and self.control.user != 'root':
             raise CantChangePermissions('Voce nao e autorizado a alterar as permissoes deste arquivo!')
         
-        archive.owner = new_owner
+        usr_exist = False
+        if new_owner:
+            users = list(map(lambda x: x[0], self.__users_infos(file, inodes_array)))
+            if new_owner not in users: raise NoExistentUser(f'O usuário {new_owner} nao existe!')
+            archive.owner = new_owner
+            
         if new_group is not None: archive.group = new_group
         
         self.control.save_inode(inodes_array, archive)
